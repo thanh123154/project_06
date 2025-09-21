@@ -1,0 +1,13 @@
+{
+    "collection": {
+        "$in": [
+            "view_product_detail",
+            "select_product_option",
+            "select_product_option_quality",
+            "add_to_cart_action",
+            "product_detail_recommendation_visible",
+            "product_detail_recommendation_noticed",
+            "product_view_all_recommend_clicked"
+        ]
+    }
+}

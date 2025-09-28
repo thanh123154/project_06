@@ -1,18 +1,50 @@
 import os
-import time
-from typing import Any, Dict, List, Optional
-
+import json
 import pymongo
-
-from .logging_utils import get_logger
-from .utils import sanitize_document, flatten_dict
-from .writers import BaseBatchWriter, make_writer
-
-LOGGER = get_logger("mongo_exporter")
+from typing import Optional, List, Dict, Any
+from datetime import datetime
 
 
-def get_mongo_client(uri: str) -> pymongo.MongoClient:
-    return pymongo.MongoClient(uri, serverSelectionTimeoutMS=10_000)
+def get_logger(name: str):
+    import logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    return logging.getLogger(name)
+
+
+def clean_doc(doc: dict) -> dict:
+    """Chuẩn hóa document trước khi ghi ra file JSONL"""
+    def _fix_value(v):
+        if v is None:
+            return None
+        if isinstance(v, bool):
+            # chuyển boolean thành string "true"/"false"
+            return str(v).lower()
+        if isinstance(v, list):
+            return [_fix_value(x) for x in v]
+        if isinstance(v, dict):
+            return {k: _fix_value(val) for k, val in v.items()}
+        return v
+
+    cleaned = {}
+    for k, v in doc.items():
+        # ép option luôn thành list
+        if k == "option" and isinstance(v, dict):
+            cleaned[k] = [v]
+        else:
+            cleaned[k] = _fix_value(v)
+    return cleaned
+
+
+def load_query(query_json: Optional[str], query_file: Optional[str]) -> Dict[str, Any]:
+    if query_json:
+        return json.loads(query_json)
+    if query_file:
+        with open(query_file, "r") as f:
+            return json.load(f)
+    return {}
 
 
 def export(
@@ -25,64 +57,32 @@ def export(
     fmt: str,
     local_output_dir: str,
     file_prefix: str,
-    flatten_for_tabular: bool,
+    flatten_for_tabular: bool = False,
 ) -> str:
-    client = get_mongo_client(mongo_uri)
-    try:
-        client.admin.command("ping")
-        LOGGER.info("Connected to MongoDB")
-    except Exception as exc:
-        LOGGER.error(f"Cannot connect to MongoDB: {exc}")
-        raise
-
-    collection = client[db_name][collection_name]
-    projection = None
-    if fields:
-        projection = {f: 1 for f in fields}
+    client = pymongo.MongoClient(mongo_uri)
+    db = client[db_name]
+    coll = db[collection_name]
 
     os.makedirs(local_output_dir, exist_ok=True)
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    output_path = os.path.join(
+        local_output_dir, f"{file_prefix}_{timestamp}.{fmt}")
 
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    ext = fmt.lower()
-    local_path = os.path.join(
-        local_output_dir, f"{file_prefix}_{timestamp}.{ext}")
+    cursor = coll.find(query, projection=fields, batch_size=batch_size)
 
-    total_docs = 0
-    writer: BaseBatchWriter = make_writer(
-        fmt, local_path, header_fields=fields if fmt == "csv" else None)
+    with open(output_path, "w", encoding="utf-8") as f:
+        for doc in cursor:
+            cleaned = clean_doc(doc)
+            f.write(json.dumps(cleaned, ensure_ascii=False) + "\n")
 
-    try:
-        cursor = collection.find(
-            query, projection=projection, no_cursor_timeout=True, batch_size=batch_size)
-        with cursor:
-            batch: List[Dict[str, Any]] = []
-            for doc in cursor:
-                batch.append(doc)
-                if len(batch) >= batch_size:
-                    _write_batch(batch, writer, fmt, flatten_for_tabular)
-                    total_docs += len(batch)
-                    batch = []
-                    if total_docs % (batch_size * 10) == 0:
-                        LOGGER.info(f"Processed {total_docs} documents...")
-            if batch:
-                _write_batch(batch, writer, fmt, flatten_for_tabular)
-                total_docs += len(batch)
-    except Exception as exc:
-        LOGGER.exception(f"Export failed after {total_docs} docs: {exc}")
-        raise
-    finally:
-        try:
-            writer.close()
-        except Exception:
-            pass
-
-    LOGGER.info(
-        f"Export completed. Total documents: {total_docs}. Local file: {local_path}")
-    return local_path
+    return output_path
 
 
-def _write_batch(batch: List[Dict[str, Any]], writer: BaseBatchWriter, fmt: str, flatten_for_tabular: bool) -> None:
-    sanitized: List[Dict[str, Any]] = [sanitize_document(d) for d in batch]
-    if fmt in ("csv", "orc", "avro", "parquet") and flatten_for_tabular:
-        sanitized = [flatten_dict(d) for d in sanitized]
-    writer.write_batch(sanitized)
+def upload_to_gcs(local_path: str, bucket: str, dest_blob: str) -> str:
+    from google.cloud import storage
+
+    client = storage.Client()
+    bucket = client.bucket(bucket)
+    blob = bucket.blob(dest_blob)
+    blob.upload_from_filename(local_path)
+    return f"gs://{bucket.name}/{dest_blob}"

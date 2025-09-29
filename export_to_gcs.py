@@ -14,6 +14,7 @@ from exporter import (
     export,
     upload_to_gcs,
 )
+from exporter.mongo_exporter import get_mongo_client  # reuse client for counting
 
 LOGGER = get_logger("export_cli")
 
@@ -46,6 +47,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--flatten", action="store_true",
                    help="Flatten nested documents for tabular formats")
 
+    # Verification
+    p.add_argument("--verify-count", action="store_true",
+                   help="Compare Mongo count_documents with exported record count")
+
     # GCS options
     p.add_argument("--gcs-bucket", default=os.getenv("GCS_BUCKET"))
     p.add_argument("--gcs-prefix", default=os.getenv("GCS_PREFIX", ""))
@@ -56,6 +61,46 @@ def build_arg_parser() -> argparse.ArgumentParser:
                    help="Run without uploading to GCS")
 
     return p
+
+
+def count_exported_records(local_path: str, fmt: str) -> int:
+    fmt = fmt.lower()
+    if fmt == "jsonl":
+        with open(local_path, "r", encoding="utf-8") as f:
+            return sum(1 for _ in f)
+    if fmt == "csv":
+        with open(local_path, "r", encoding="utf-8") as f:
+            total = sum(1 for _ in f)
+            return max(0, total - 1)  # minus header
+    if fmt == "parquet":
+        try:
+            import pyarrow.parquet as pq  # type: ignore
+        except Exception as exc:
+            LOGGER.warning(
+                f"Cannot count parquet rows (pyarrow missing): {exc}")
+            return -1
+        pf = pq.ParquetFile(local_path)
+        return pf.metadata.num_rows if pf.metadata is not None else -1
+    # Unsupported precise counting for avro/orc here
+    LOGGER.warning(f"Record counting not implemented for format: {fmt}")
+    return -1
+
+
+def verify_counts(mongo_uri: str, db: str, collection: str, query: dict, exported_path: str, fmt: str) -> None:
+    try:
+        client = get_mongo_client(mongo_uri)
+        expected = client[db][collection].count_documents(query)
+    except Exception as exc:
+        LOGGER.error(f"Failed to count expected documents in Mongo: {exc}")
+        return
+    actual = count_exported_records(exported_path, fmt)
+    if actual < 0:
+        LOGGER.info(
+            f"Expected (Mongo): {expected}. Actual (file): unknown for format {fmt}.")
+        return
+    status = "MATCH" if expected == actual else "MISMATCH"
+    LOGGER.info(
+        f"Verification: expected={expected}, actual={actual} -> {status}")
 
 
 def main() -> None:
@@ -92,6 +137,10 @@ def main() -> None:
     except Exception as exc:
         LOGGER.error(f"Export failed: {exc}")
         sys.exit(2)
+
+    if args.verify_count:
+        verify_counts(args.mongo_uri, args.db, args.collection,
+                      query, local_path, args.format)
 
     if args.dry_run or args.no_gcs_upload or not args.gcs_bucket:
         LOGGER.info("Skipping GCS upload (dry-run/no-gcs/bucket not set)")

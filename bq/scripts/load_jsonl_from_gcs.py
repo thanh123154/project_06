@@ -12,7 +12,7 @@ LOGGER = logging.getLogger("bq_loader_script")
 PROJECT_ID = "consummate-rig-466909-i6"
 DATASET = "my_raw_dataset"
 TABLE = "events"
-GCS_URI = "gs://first-bucket-practice-for-data-engineer/exports/daily/export_20250929_065110_clean.jsonl"
+GCS_URI = "gs://first-bucket-practice-for-data-engineer/exports/export_20250929_085503.parquet"
 WRITE_DISPOSITION = "WRITE_APPEND"  # or WRITE_TRUNCATE, WRITE_EMPTY
 
 
@@ -22,7 +22,7 @@ def load_jsonl_from_gcs() -> None:
     table_id = f"{PROJECT_ID}.{DATASET}.{TABLE}"
 
     job_config = bigquery.LoadJobConfig(
-        source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+        source_format=bigquery.SourceFormat.PARQUET,
         autodetect=True,
         write_disposition=getattr(
             bigquery.WriteDisposition, WRITE_DISPOSITION),

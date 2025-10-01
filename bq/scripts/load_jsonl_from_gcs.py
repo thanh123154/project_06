@@ -15,8 +15,6 @@ TABLE = "events"
 GCS_URI = "gs://first-bucket-practice-for-data-engineer/raw/export_20250929_065110_clean.jsonl"
 WRITE_DISPOSITION = "WRITE_APPEND"  # or WRITE_TRUNCATE, WRITE_EMPTY
 
-LOGGER = get_logger("bq_loader_script")
-
 
 def load_jsonl_from_gcs() -> None:
     client = bigquery.Client(project=PROJECT_ID)

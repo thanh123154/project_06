@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-from exporter.logging_utils import get_logger
+import logging
 from google.cloud import bigquery
-import sys
-import os
-from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
+# Setup logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+LOGGER = logging.getLogger("bq_loader_script")
 
 
 # Configure these values or set via environment when running

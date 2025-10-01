@@ -10,7 +10,7 @@ LOGGER = logging.getLogger("bq_loader_script")
 
 # Configure these values or set via environment when running
 PROJECT_ID = "consummate-rig-466909-i6"
-DATASET = "my-raw-dataset"
+DATASET = "my_raw_dataset"
 TABLE = "events"
 GCS_URI = "gs://first-bucket-practice-for-data-engineer/exports/daily/export_20250929_065110_clean.jsonl"
 WRITE_DISPOSITION = "WRITE_APPEND"  # or WRITE_TRUNCATE, WRITE_EMPTY

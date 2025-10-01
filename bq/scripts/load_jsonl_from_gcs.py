@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from exporter.logging_utils import get_logger
 from google.cloud import bigquery
+from exporter.logging_utils import get_logger
 import sys
 import os
 from pathlib import Path

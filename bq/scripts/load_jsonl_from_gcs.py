@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
-from google.cloud import bigquery
 from exporter.logging_utils import get_logger
+from google.cloud import bigquery
+import sys
+import os
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 
 # Configure these values or set via environment when running
 PROJECT_ID = "your_project_id"

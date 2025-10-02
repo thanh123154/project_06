@@ -125,12 +125,10 @@ def load_jsonl_from_gcs() -> None:
             "Schema file not found at %s; falling back to autodetect", SCHEMA_PATH)
         job_config.autodetect = True
 
-    # Normalize data where cart_products.option must be an array
-    fixed_gcs_uri = _fix_jsonl_gcs(GCS_URI)
-
-    LOGGER.info("Submitting load job: %s -> %s", fixed_gcs_uri, table_id)
+    # Skip normalization for now - use original file
+    LOGGER.info("Submitting load job: %s -> %s", GCS_URI, table_id)
     job = client.load_table_from_uri(
-        fixed_gcs_uri,
+        GCS_URI,
         table_id,
         job_config=job_config,
     )

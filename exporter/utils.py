@@ -28,9 +28,68 @@ def sanitize_document(document: Dict[str, Any]) -> Dict[str, Any]:
     def default(o: Any) -> str:
         return to_string(o)
 
+    def normalize_empty_values(obj: Any) -> Any:
+        """Convert empty strings to empty arrays for array fields"""
+        if isinstance(obj, dict):
+            normalized = {}
+            for key, value in obj.items():
+                # Handle specific fields that should be arrays
+                if key in ['cart_products', 'recommendation_products', 'recommendation_view_all_products']:
+                    if value == "" or value is None:
+                        normalized[key] = []
+                    elif isinstance(value, list):
+                        normalized[key] = [
+                            normalize_empty_values(item) for item in value]
+                    else:
+                        normalized[key] = [normalize_empty_values(value)]
+                elif isinstance(value, dict):
+                    # Recursively normalize nested objects
+                    normalized[key] = normalize_empty_values(value)
+                elif isinstance(value, list):
+                    normalized[key] = [
+                        normalize_empty_values(item) for item in value]
+                else:
+                    normalized[key] = value
+            return normalized
+        elif isinstance(obj, list):
+            return [normalize_empty_values(item) for item in obj]
+        else:
+            return obj
+
+    def normalize_cart_products_option(obj: Any) -> Any:
+        """Specifically handle cart_products.option field normalization"""
+        if isinstance(obj, dict):
+            normalized = {}
+            for key, value in obj.items():
+                if key == 'option':
+                    # Ensure option is always an array
+                    if value == "" or value is None:
+                        normalized[key] = []
+                    elif isinstance(value, list):
+                        normalized[key] = value
+                    else:
+                        normalized[key] = [value]
+                elif isinstance(value, dict):
+                    normalized[key] = normalize_cart_products_option(value)
+                elif isinstance(value, list):
+                    normalized[key] = [
+                        normalize_cart_products_option(item) for item in value]
+                else:
+                    normalized[key] = value
+            return normalized
+        elif isinstance(obj, list):
+            return [normalize_cart_products_option(item) for item in obj]
+        else:
+            return obj
+
     try:
+        # First normalize empty values
+        normalized_doc = normalize_empty_values(document)
+        # Then normalize cart_products.option specifically
+        normalized_doc = normalize_cart_products_option(normalized_doc)
+        # Finally sanitize
         dumped = json.loads(json.dumps(
-            document, default=default, ensure_ascii=False))
+            normalized_doc, default=default, ensure_ascii=False))
     except Exception:
         dumped = {k: to_string(v) for k, v in document.items()}
     return dumped

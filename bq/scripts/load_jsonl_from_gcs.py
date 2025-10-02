@@ -50,7 +50,7 @@ def load_jsonl_from_gcs() -> None:
         write_disposition=getattr(
             bigquery.WriteDisposition, WRITE_DISPOSITION),
         ignore_unknown_values=True,
-        max_bad_records=1000,  # Increased for large files
+        max_bad_records=100,
     )
 
     # Load schema from schema/glamira_schema_raw.json if present
@@ -65,8 +65,6 @@ def load_jsonl_from_gcs() -> None:
         job_config.autodetect = True
 
     LOGGER.info("Submitting load job: %s -> %s", GCS_URI, table_id)
-    LOGGER.info("BigQuery will read directly from GCS (no download to VM)")
-
     job = client.load_table_from_uri(
         GCS_URI,
         table_id,
@@ -74,9 +72,6 @@ def load_jsonl_from_gcs() -> None:
     )
 
     LOGGER.info("Started job: %s", job.job_id)
-    LOGGER.info(
-        "Waiting for job completion... (this may take several minutes for large files)")
-
     result = job.result()  # Wait for completion
     LOGGER.info("Job finished: %s", job.job_id)
 

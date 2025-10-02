@@ -2,9 +2,7 @@
 import logging
 import json
 from pathlib import Path
-from urllib.parse import urlparse
 from google.cloud import bigquery
-from google.cloud import storage
 
 # Setup logging
 logging.basicConfig(level=logging.INFO,
@@ -42,65 +40,6 @@ def _to_bq_schema_fields(spec_list: list[dict]) -> list[bigquery.SchemaField]:
     return fields
 
 
-def _ensure_array(value):
-    if value is None:
-        return []
-    if isinstance(value, list):
-        return value
-    return [value]
-
-
-def _gcs_uri_parts(uri: str) -> tuple[str, str]:
-    o = urlparse(uri)
-    if o.scheme != "gs":
-        raise ValueError("GCS URI must start with gs://")
-    bucket = o.netloc
-    blob_name = o.path.lstrip("/")
-    return bucket, blob_name
-
-
-def _fix_jsonl_gcs(source_gcs_uri: str) -> str:
-    bucket_name, blob_name = _gcs_uri_parts(source_gcs_uri)
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-    src_blob = bucket.blob(blob_name)
-
-    fixed_blob_name = blob_name.rsplit(".", 1)[0] + "_fixed.jsonl"
-    dst_blob = bucket.blob(fixed_blob_name)
-
-    LOGGER.info("Downloading %s for normalization...", source_gcs_uri)
-    raw_bytes = src_blob.download_as_bytes()
-    lines = raw_bytes.decode("utf-8", errors="ignore").splitlines()
-
-    LOGGER.info("Normalizing cart_products.option to arrays...")
-    out_lines: list[str] = []
-    for line in lines:
-        if not line.strip():
-            continue
-        try:
-            obj = json.loads(line)
-        except Exception:
-            # Skip invalid lines silently; BigQuery will tolerate some with max_bad_records
-            continue
-        cps = obj.get("cart_products")
-        if isinstance(cps, list):
-            for it in cps:
-                if isinstance(it, dict) and "option" in it:
-                    it["option"] = _ensure_array(it.get("option"))
-        elif isinstance(cps, dict):
-            if "option" in cps:
-                cps["option"] = _ensure_array(cps.get("option"))
-            obj["cart_products"] = [cps]
-        out_lines.append(json.dumps(obj, ensure_ascii=False))
-
-    fixed_payload = ("\n".join(out_lines) + "\n").encode("utf-8")
-    LOGGER.info("Uploading normalized file to gs://%s/%s",
-                bucket_name, fixed_blob_name)
-    dst_blob.upload_from_string(fixed_payload, content_type="application/json")
-
-    return f"gs://{bucket_name}/{fixed_blob_name}"
-
-
 def load_jsonl_from_gcs() -> None:
     client = bigquery.Client(project=PROJECT_ID)
 
@@ -111,7 +50,7 @@ def load_jsonl_from_gcs() -> None:
         write_disposition=getattr(
             bigquery.WriteDisposition, WRITE_DISPOSITION),
         ignore_unknown_values=True,
-        max_bad_records=100,
+        max_bad_records=1000,  # Increased for large files
     )
 
     # Load schema from schema/glamira_schema_raw.json if present
@@ -125,8 +64,9 @@ def load_jsonl_from_gcs() -> None:
             "Schema file not found at %s; falling back to autodetect", SCHEMA_PATH)
         job_config.autodetect = True
 
-    # Skip normalization for now - use original file
     LOGGER.info("Submitting load job: %s -> %s", GCS_URI, table_id)
+    LOGGER.info("BigQuery will read directly from GCS (no download to VM)")
+
     job = client.load_table_from_uri(
         GCS_URI,
         table_id,
@@ -134,6 +74,9 @@ def load_jsonl_from_gcs() -> None:
     )
 
     LOGGER.info("Started job: %s", job.job_id)
+    LOGGER.info(
+        "Waiting for job completion... (this may take several minutes for large files)")
+
     result = job.result()  # Wait for completion
     LOGGER.info("Job finished: %s", job.job_id)
 

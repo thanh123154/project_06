@@ -13,7 +13,7 @@ LOGGER = logging.getLogger("bq_loader_script")
 PROJECT_ID = "consummate-rig-466909-i6"
 DATASET = "my_raw_dataset"
 TABLE = "events2"
-GCS_URI = "gs://first-bucket-practice-for-data-engineer/exports/daily/export_20250929_065110_clean.jsonl"
+GCS_URI = "gs://first-bucket-practice-for-data-engineer/exports/export_20251002_181352.jsonl"
 WRITE_DISPOSITION = "WRITE_APPEND"  # or WRITE_TRUNCATE, WRITE_EMPTY
 SCHEMA_PATH = Path(__file__).parents[2] / "schema" / "glamira_schema_raw.json"
 

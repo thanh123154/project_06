@@ -97,7 +97,7 @@ def _get_file_size_gcs(bucket_name: str, blob_name: str) -> int:
         return 0
 
 
-def trigger_bigquery_load(event, context):
+def bq_auto_loader(event, context):
     """
     Cloud Function entry point triggered by GCS object finalize events.
 
@@ -226,5 +226,5 @@ if __name__ == "__main__":
     })()
 
     print("Testing Cloud Function locally...")
-    result = trigger_bigquery_load(test_event, test_context)
+    result = bq_auto_loader(test_event, test_context)
     print("Result:", json.dumps(result, indent=2))

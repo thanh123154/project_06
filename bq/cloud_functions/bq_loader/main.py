@@ -12,7 +12,7 @@ def _make_table_id() -> str:
     return f"{project}.{dataset}.{table}"
 
 
-def trigger_bigquery_load(event: Dict[str, Any], context: Any) -> None:
+def bq_auto_loader(event: Dict[str, Any], context: Any) -> None:
     # Event structure for Storage (finalized) - CloudEvents-like dict in gen2
     bucket = event.get("bucket") or event.get("data", {}).get("bucket")
     name = event.get("name") or event.get("data", {}).get("name")

@@ -97,6 +97,14 @@ def _get_file_size_gcs(bucket_name: str, blob_name: str) -> int:
         return 0
 
 
+def trigger_bigquery_load(event, context):
+    """
+    Legacy function name for backward compatibility.
+    Calls bq_auto_loader function.
+    """
+    return bq_auto_loader(event, context)
+
+
 def bq_auto_loader(event, context):
     """
     Cloud Function entry point triggered by GCS object finalize events.

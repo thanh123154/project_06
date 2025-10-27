@@ -48,7 +48,8 @@ echo "Function URL: https://console.cloud.google.com/functions/details/us-centra
 # Test with a sample file
 echo "Testing with sample file..."
 TEST_FILE="test_auto_load_$(date +%Y%m%d_%H%M%S).jsonl"
-echo '{"test": "data", "timestamp": "'$(date -Iseconds)'"}' | gsutil cp - "gs://$BUCKET_NAME/exports/daily/$TEST_FILE"
+TIMESTAMP=$(date -Iseconds)
+echo "{\"test\": \"data\", \"timestamp\": \"$TIMESTAMP\"}" | gsutil cp - "gs://$BUCKET_NAME/exports/daily/$TEST_FILE"
 
 echo "Test file uploaded: gs://$BUCKET_NAME/exports/daily/$TEST_FILE"
 echo "Check logs: gcloud functions logs read $FUNCTION_NAME --limit=20"

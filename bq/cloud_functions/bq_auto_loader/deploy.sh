@@ -23,6 +23,15 @@ cd "$SCRIPT_DIR"
 echo "Copying schema file..."
 cp "$ROOT_DIR/schema/glamira_schema_raw.json" ./schema.json
 
+# Fix IAM permissions for Cloud Build
+echo "Setting up IAM permissions..."
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
+SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$SERVICE_ACCOUNT" \
+  --role="roles/cloudbuild.builds.builder" \
+  --quiet || echo "IAM permissions already set"
+
 # Deploy function
 echo "Deploying Cloud Function..."
 gcloud functions deploy "$FUNCTION_NAME" \
@@ -39,7 +48,7 @@ gcloud functions deploy "$FUNCTION_NAME" \
   --set-env-vars MAX_BAD_RECORDS=1000 \
   --set-env-vars SCHEMA_PATH=/workspace/schema.json \
   --memory=1Gi \
-  --timeout=1800s \
+  --timeout=540s \
   --max-instances=10 \
   --region=us-central1
 

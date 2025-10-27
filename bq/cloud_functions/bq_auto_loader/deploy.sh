@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
+ROOT_DIR="$(dirname "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")"))"
 
 echo "Deploying BigQuery Auto Loader Cloud Function..."
 
@@ -20,22 +20,24 @@ cd "$SCRIPT_DIR"
 
 # Copy schema file
 echo "Copying schema file..."
-cp "$ROOT_DIR/../schema/glamira_schema_raw.json" ./schema.json
+cp "$ROOT_DIR/schema/glamira_schema_raw.json" ./schema.json
 
 # Deploy function
 echo "Deploying Cloud Function..."
 gcloud functions deploy "$FUNCTION_NAME" \
+  --gen2 \
   --runtime python311 \
-  --trigger-event-type google.storage.object.finalize \
-  --trigger-resource "$BUCKET_NAME" \
-  --trigger-event-filters path-pattern="exports/daily/*.jsonl" \
+  --entry-point bq_auto_loader \
+  --trigger-event-filters type=google.cloud.storage.object.v1.finalized \
+  --trigger-event-filters bucket="$BUCKET_NAME" \
+  --trigger-event-filters objectPrefix="exports/daily/" \
   --set-env-vars PROJECT_ID="$PROJECT_ID" \
   --set-env-vars DATASET="$DATASET" \
   --set-env-vars TABLE="$TABLE" \
   --set-env-vars WRITE_DISPOSITION=WRITE_APPEND \
   --set-env-vars MAX_BAD_RECORDS=1000 \
   --set-env-vars SCHEMA_PATH=/workspace/schema.json \
-  --memory=1GB \
+  --memory=1Gi \
   --timeout=1800s \
   --max-instances=10 \
   --region=us-central1

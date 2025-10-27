@@ -9,9 +9,9 @@ ROOT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 echo "Deploying BigQuery Auto Loader Cloud Function..."
 
 # Configuration
-PROJECT_ID="consummate-rig-466909-i6"
+PROJECT_ID="secure-wonder-475603-v6"
 FUNCTION_NAME="bq-auto-loader"
-BUCKET_NAME="first-bucket-practice-for-data-engineer"
+BUCKET_NAME="data-engineer-us-central1"
 DATASET="my_raw_dataset"
 TABLE="events2"
 
@@ -20,7 +20,7 @@ cd "$SCRIPT_DIR"
 
 # Copy schema file
 echo "Copying schema file..."
-cp "$ROOT_DIR/schema/glamira_schema_raw.json" ./schema.json
+cp "$ROOT_DIR/../schema/glamira_schema_raw.json" ./schema.json
 
 # Deploy function
 echo "Deploying Cloud Function..."

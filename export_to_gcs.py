@@ -13,7 +13,6 @@ from exporter import (
     load_query,
     export,
     upload_to_gcs,
-    download_bson_from_gcs,
 )
 from exporter.mongo_exporter import get_mongo_client  # reuse client for counting
 
@@ -22,16 +21,7 @@ LOGGER = get_logger("export_cli")
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Export MongoDB data in batches and optionally upload to GCS, or convert BSON from GCS to JSONL.")
-    
-    # GCS BSON export mode
-    p.add_argument("--convert-bson", action="store_true",
-                   help="Convert a BSON file from GCS to JSONL locally (bypasses MongoDB)")
-    p.add_argument("--gcs-bucket-name", default=os.getenv("GCS_BUCKET_NAME"))
-    p.add_argument("--gcs-bson-source", help="Source BSON file path in GCS bucket")
-    p.add_argument("--output-jsonl", help="Output JSONL file path")
-    
-    # MongoDB export mode (existing)
+        description="Export MongoDB data in batches and optionally upload to GCS.")
     p.add_argument("--mongo-uri", default=os.getenv("MONGO_URI",
                    "mongodb://localhost:27017"))
     p.add_argument("--db", required=False, default=os.getenv("DB_NAME"))
@@ -120,26 +110,6 @@ def main() -> None:
     parser = build_arg_parser()
     args = parser.parse_args()
 
-    # Handle BSON conversion mode
-    if args.convert_bson:
-        if not args.gcs_bucket_name:
-            parser.error("--gcs-bucket-name is required for BSON conversion")
-        if not args.gcs_bson_source:
-            parser.error("--gcs-bson-source is required for BSON conversion")
-        
-        try:
-            local_path = download_bson_from_gcs(
-                bucket_name=args.gcs_bucket_name,
-                source_path=args.gcs_bson_source,
-                local_output_path=args.output_jsonl
-            )
-            print(local_path)
-        except Exception as exc:
-            LOGGER.error(f"BSON conversion failed: {exc}")
-            sys.exit(1)
-        return
-
-    # MongoDB export mode
     missing = []
     if not args.db:
         missing.append("--db or DB_NAME")

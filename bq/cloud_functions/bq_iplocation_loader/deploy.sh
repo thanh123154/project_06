@@ -14,7 +14,7 @@ echo "🚀 Deploying BigQuery IP Location Loader Cloud Function..."
 # ======================
 PROJECT_ID="secure-wonder-475603-v6"
 FUNCTION_NAME="bq-iplocation-loader"
-BUCKET_NAME="data-engineer-us-central1"
+BUCKET_NAME="ip_location_data"
 DATASET="my_raw_dataset"
 TABLE="iplocation"
 

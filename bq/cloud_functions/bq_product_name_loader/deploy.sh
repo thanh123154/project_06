@@ -14,9 +14,9 @@ echo "🚀 Deploying BigQuery Product Name Loader Cloud Function..."
 # ======================
 PROJECT_ID="secure-wonder-475603-v6"
 FUNCTION_NAME="bq-product-name-loader"
-BUCKET_NAME="data-engineer-us-central1"
+BUCKET_NAME="product_name"
 DATASET="my_raw_dataset"
-TABLE="product_name"
+TABLE="product_names"
 
 # ======================
 # Prepare

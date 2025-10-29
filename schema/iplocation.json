@@ -1,0 +1,27 @@
+[
+  { "name": "ip", "type": "STRING", "description": "Địa chỉ IP được tra cứu" },
+  {
+    "name": "country_code",
+    "type": "STRING",
+    "description": "Mã quốc gia (ví dụ: 'VN', 'US')"
+  },
+  { "name": "country_name", "type": "STRING", "description": "Tên quốc gia" },
+  {
+    "name": "region_name",
+    "type": "STRING",
+    "description": "Tên vùng hoặc bang (nếu có)"
+  },
+  { "name": "city_name", "type": "STRING", "description": "Tên thành phố" },
+  { "name": "latitude", "type": "FLOAT", "description": "Vĩ độ của IP" },
+  { "name": "longitude", "type": "FLOAT", "description": "Kinh độ của IP" },
+  {
+    "name": "processed_at",
+    "type": "INTEGER",
+    "description": "Thời điểm xử lý (Unix timestamp, giây)"
+  },
+  {
+    "name": "processing_time_ms",
+    "type": "FLOAT",
+    "description": "Thời gian xử lý cho mỗi IP (tính bằng milliseconds)"
+  }
+]

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "product_id",
+    "type": "STRING",
+    "description": "Mã định danh duy nhất của sản phẩm"
+  },
+  {
+    "name": "url",
+    "type": "STRING",
+    "description": "Đường dẫn URL tới trang chi tiết sản phẩm"
+  },
+  {
+    "name": "source_collection",
+    "type": "STRING",
+    "description": "Nguồn hoặc loại dữ liệu thu thập (ví dụ: 'view_product_detail')"
+  },
+  {
+    "name": "product_name",
+    "type": "STRING",
+    "description": "Tên sản phẩm (có thể null nếu chưa được trích xuất)"
+  },
+  {
+    "name": "fetched_at",
+    "type": "INTEGER",
+    "description": "Thời điểm thu thập dữ liệu (Unix timestamp, giây)"
+  }
+]

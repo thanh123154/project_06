@@ -15,6 +15,11 @@
     "description": "Nguồn hoặc loại dữ liệu thu thập (ví dụ: 'view_product_detail')"
   },
   {
+    "name": "status",
+    "type": "STRING",
+    "description": "Trạng thái trích xuất (ví dụ: success, no_html)"
+  },
+  {
     "name": "product_name",
     "type": "STRING",
     "description": "Tên sản phẩm (có thể null nếu chưa được trích xuất)"

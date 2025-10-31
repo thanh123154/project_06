@@ -158,6 +158,9 @@ def bq_product_name_loader(event, context):
                 bigquery.WriteDisposition, WRITE_DISPOSITION),
             ignore_unknown_values=IGNORE_UNKNOWN_VALUES,
             max_bad_records=MAX_BAD_RECORDS,
+            schema_update_options=[
+                bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
+            ],
         )
 
         # Load schema if available

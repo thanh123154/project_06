@@ -16,7 +16,7 @@ PROJECT_ID="secure-wonder-475603-v6"
 FUNCTION_NAME="bq-auto-loader"
 BUCKET_NAME="data-engineer-us-central1"
 DATASET="my_raw_dataset"
-TABLE="raw_layer"
+TABLE="events2"
 
 # ======================
 # Prepare
